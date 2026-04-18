@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Linux 服务器内存优化实战 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="Linux 服务器内存优化实战问题背景在低配置服务器（1.6GB 内存）上部署应用时，经常会遇到内存不足的问题。本文将分享实际的优化经验。 常见问题1. PM2 进程重复启动当 PM2 配置错误时，会导致进程不断重启，消耗大量内存： 12345# 查看 PM2 进程状态pm2 list# 查看详细信息pm2 describe &lt;app-name&gt;  2. 开发工具占用过高VSCode">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 服务器内存优化实战">
+<meta property="og:url" content="http://www.jindongyan.cyou/2026/04/18/tech-blog/linux-memory-optimization/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Linux 服务器内存优化实战问题背景在低配置服务器（1.6GB 内存）上部署应用时，经常会遇到内存不足的问题。本文将分享实际的优化经验。 常见问题1. PM2 进程重复启动当 PM2 配置错误时，会导致进程不断重启，消耗大量内存： 12345# 查看 PM2 进程状态pm2 list# 查看详细信息pm2 describe &lt;app-name&gt;  2. 开发工具占用过高VSCode">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-04-18T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-18T04:35:48.096Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="性能优化">
+<meta property="article:tag" content="服务器管理">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fork-awesome@1.2.0/css/fork-awesome.min.css">
+
+<meta name="generator" content="Hexo 8.1.1"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/atom.xml" title="RSS Feed"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="Search"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://www.jindongyan.cyou"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-tech-blog/linux-memory-optimization" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2026/04/18/tech-blog/linux-memory-optimization/" class="article-date">
+  <time class="dt-published" datetime="2026-04-18T04:00:00.000Z" itemprop="datePublished">2026-04-18</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/tech-blog/">tech-blog</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Linux 服务器内存优化实战
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="Linux-服务器内存优化实战"><a href="#Linux-服务器内存优化实战" class="headerlink" title="Linux 服务器内存优化实战"></a>Linux 服务器内存优化实战</h1><h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>在低配置服务器（1.6GB 内存）上部署应用时，经常会遇到内存不足的问题。本文将分享实际的优化经验。</p>
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="1-PM2-进程重复启动"><a href="#1-PM2-进程重复启动" class="headerlink" title="1. PM2 进程重复启动"></a>1. PM2 进程重复启动</h3><p>当 PM2 配置错误时，会导致进程不断重启，消耗大量内存：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 PM2 进程状态</span></span><br><span class="line">pm2 list</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看详细信息</span></span><br><span class="line">pm2 describe &lt;app-name&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-开发工具占用过高"><a href="#2-开发工具占用过高" class="headerlink" title="2. 开发工具占用过高"></a>2. 开发工具占用过高</h3><p>VSCode Remote Server 和相关扩展可能占用大量内存：</p>
+<ul>
+<li>VSCode Server: ~335MB</li>
+<li>TypeScript 服务: ~350MB</li>
+<li>AI 助手插件: ~150MB</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>关闭不必要的扩展</li>
+<li>限制 TypeScript 内存使用</li>
+<li>考虑升级到更大内存的服务器</li>
+</ul>
+<h2 id="优化方案"><a href="#优化方案" class="headerlink" title="优化方案"></a>优化方案</h2><h3 id="配置-PM2-内存限制"><a href="#配置-PM2-内存限制" class="headerlink" title="配置 PM2 内存限制"></a>配置 PM2 内存限制</h3><p>创建 <code>ecosystem.config.js</code>：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = &#123;</span><br><span class="line">  <span class="attr">apps</span>: [&#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;my-app&#x27;</span>,</span><br><span class="line">    <span class="attr">script</span>: <span class="string">&#x27;npm&#x27;</span>,</span><br><span class="line">    <span class="attr">args</span>: <span class="string">&#x27;start&#x27;</span>,</span><br><span class="line">    <span class="attr">max_memory_restart</span>: <span class="string">&#x27;200M&#x27;</span>,  <span class="comment">// 限制最大内存</span></span><br><span class="line">    <span class="attr">instances</span>: <span class="number">1</span>,</span><br><span class="line">    <span class="attr">autorestart</span>: <span class="literal">true</span></span><br><span class="line">  &#125;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="监控系统资源"><a href="#监控系统资源" class="headerlink" title="监控系统资源"></a>监控系统资源</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 实时查看内存使用</span></span><br><span class="line">free -h</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看进程内存占用</span></span><br><span class="line">ps aux --<span class="built_in">sort</span>=-%mem | <span class="built_in">head</span> -10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 监控 PM2 进程</span></span><br><span class="line">pm2 monit</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>在小内存服务器上，合理配置进程管理和监控是保证服务稳定的关键。</p>
+<hr>
+<p><strong>相关阅读</strong>：</p>
+<ul>
+<li><a href="">PM2 进程管理最佳实践</a></li>
+<li><a href="">Linux 性能监控工具推荐</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://www.jindongyan.cyou/2026/04/18/tech-blog/linux-memory-optimization/" data-id="cuidZekzu1FBepDLWyC8aa2eT" data-title="Linux 服务器内存优化实战" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" rel="tag">性能优化</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AE%A1%E7%90%86/" rel="tag">服务器管理</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2026/04/18/tech-blog/hexo-deployment-guide/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Hexo 博客部署完全指南</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/tech-blog/">tech-blog</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/DevOps/" rel="tag">DevOps</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/" rel="tag">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/" rel="tag">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8D%9A%E5%AE%A2/" rel="tag">博客</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%B9%E5%99%A8%E5%8C%96/" rel="tag">容器化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" rel="tag">性能优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AE%A1%E7%90%86/" rel="tag">服务器管理</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%83%A8%E7%BD%B2/" rel="tag">部署</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/DevOps/" style="font-size: 10px;">DevOps</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/Linux/" style="font-size: 10px;">Linux</a> <a href="/tags/%E5%8D%9A%E5%AE%A2/" style="font-size: 10px;">博客</a> <a href="/tags/%E5%AE%B9%E5%99%A8%E5%8C%96/" style="font-size: 10px;">容器化</a> <a href="/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" style="font-size: 10px;">性能优化</a> <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AE%A1%E7%90%86/" style="font-size: 10px;">服务器管理</a> <a href="/tags/%E9%83%A8%E7%BD%B2/" style="font-size: 10px;">部署</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/04/18/tech-blog/linux-memory-optimization/">Linux 服务器内存优化实战</a>
+          </li>
+        
+          <li>
+            <a href="/2026/04/18/tech-blog/hexo-deployment-guide/">Hexo 博客部署完全指南</a>
+          </li>
+        
+          <li>
+            <a href="/2026/04/18/tech-blog/docker-beginner-guide/">Docker 容器化入门教程</a>
+          </li>
+        
+          <li>
+            <a href="/2026/04/09/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2026 John Doe<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
